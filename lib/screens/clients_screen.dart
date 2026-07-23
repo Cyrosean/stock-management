@@ -15,6 +15,9 @@ class _ClientsScreenState extends State<ClientsScreen> {
 
   final nameController = TextEditingController();
   final phoneController = TextEditingController();
+  final searchController = TextEditingController();
+
+  String searchQuery = "";
 
   // Load clients from database
   Future<void> getClients() async {
@@ -53,6 +56,9 @@ class _ClientsScreenState extends State<ClientsScreen> {
   }
 
   void addClientForm() {
+    nameController.clear();
+    phoneController.clear();
+
     showDialog(
       context: context,
       builder: (context) {
@@ -67,6 +73,8 @@ class _ClientsScreenState extends State<ClientsScreen> {
                 controller: nameController,
                 decoration: const InputDecoration(labelText: "Client Name"),
               ),
+
+              const SizedBox(height: 16),
 
               TextField(
                 controller: phoneController,
@@ -99,6 +107,9 @@ class _ClientsScreenState extends State<ClientsScreen> {
                 controller: nameController,
                 decoration: const InputDecoration(labelText: "Name"),
               ),
+
+              const SizedBox(height: 16),
+
               TextField(
                 controller: phoneController,
                 decoration: const InputDecoration(labelText: "Phone Number"),
@@ -189,42 +200,86 @@ class _ClientsScreenState extends State<ClientsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final filteredClients = clients.where((client) {
+      final name = (client["name"] ?? "").toString().toLowerCase();
+      final phone = (client["phone"] ?? "").toString().toLowerCase();
+      return name.contains(searchQuery) || phone.contains(searchQuery);
+    }).toList();
+
     return Scaffold(
       appBar: AppBar(
         title: const Text("Clients"),
         backgroundColor: Colors.orange,
       ),
 
-      body: ListView.builder(
-        itemCount: clients.length,
-
-        itemBuilder: (context, index) {
-          return Card(
-            child: ListTile(
-              title: Text(clients[index]["name"]),
-
-              subtitle: Text(clients[index]["phone"]),
-
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.edit, color: Colors.orange),
-                    onPressed: () {
-                      editClientForm(clients[index]);
-                    },
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.delete, color: Colors.red),
-                    onPressed: () {
-                      confirmDelete(clients[index]["id"]);
-                    },
-                  ),
-                ],
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: TextField(
+              controller: searchController,
+              decoration: InputDecoration(
+                hintText: "Search clients...",
+                prefixIcon: const Icon(Icons.search),
+                filled: true,
+                fillColor: Colors.grey.shade100,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
               ),
+              onChanged: (value) {
+                setState(() {
+                  searchQuery = value.toLowerCase();
+                });
+              },
             ),
-          );
-        },
+          ),
+
+          Expanded(
+            child: filteredClients.isEmpty
+                ? const Center(child: Text("No clients found"))
+                : ListView.builder(
+                    itemCount: filteredClients.length,
+
+                    itemBuilder: (context, index) {
+                      final client = filteredClients[index];
+
+                      return Card(
+                        child: ListTile(
+                          title: Text(client["name"]),
+
+                          subtitle: Text(client["phone"]),
+
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.edit,
+                                  color: Colors.orange,
+                                ),
+                                onPressed: () {
+                                  editClientForm(client);
+                                },
+                              ),
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.delete,
+                                  color: Colors.red,
+                                ),
+                                onPressed: () {
+                                  confirmDelete(client["id"]);
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+          ),
+        ],
       ),
       floatingActionButton: FloatingActionButton(
         backgroundColor: Colors.orange,

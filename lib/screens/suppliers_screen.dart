@@ -16,6 +16,9 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
   final nameController = TextEditingController();
   final phoneController = TextEditingController();
   final companyController = TextEditingController();
+  final searchController = TextEditingController();
+
+  String searchQuery = "";
 
   @override
   void initState() {
@@ -216,42 +219,90 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final filteredSuppliers = suppliers.where((supplier) {
+      final name = (supplier["name"] ?? "").toString().toLowerCase();
+      final company = (supplier["company"] ?? "").toString().toLowerCase();
+      final phone = (supplier["phone"] ?? "").toString().toLowerCase();
+      return name.contains(searchQuery) ||
+          company.contains(searchQuery) ||
+          phone.contains(searchQuery);
+    }).toList();
+
     return Scaffold(
       appBar: AppBar(
         title: const Text("Suppliers"),
         backgroundColor: Colors.orange,
       ),
-      body: ListView.builder(
-        itemCount: suppliers.length,
-        itemBuilder: (context, index) {
-          final supplier = suppliers[index];
-          return Card(
-            margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-            child: ListTile(
-              title: Text(supplier["name"] ?? ""),
-              subtitle: Text(
-                "${supplier["company"] ?? ""}\n${supplier["phone"] ?? ""}",
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: TextField(
+              controller: searchController,
+              decoration: InputDecoration(
+                hintText: "Search suppliers...",
+                prefixIcon: const Icon(Icons.search),
+                filled: true,
+                fillColor: Colors.grey.shade100,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
               ),
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.edit, color: Colors.orange),
-                    onPressed: () {
-                      editSupplierForm(supplier);
-                    },
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.delete, color: Colors.red),
-                    onPressed: () {
-                      confirmDelete(supplier["id"].toString());
-                    },
-                  ),
-                ],
-              ),
+              onChanged: (value) {
+                setState(() {
+                  searchQuery = value.toLowerCase();
+                });
+              },
             ),
-          );
-        },
+          ),
+
+          Expanded(
+            child: filteredSuppliers.isEmpty
+                ? const Center(child: Text("No suppliers found"))
+                : ListView.builder(
+                    itemCount: filteredSuppliers.length,
+                    itemBuilder: (context, index) {
+                      final supplier = filteredSuppliers[index];
+                      return Card(
+                        margin: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 5,
+                        ),
+                        child: ListTile(
+                          title: Text(supplier["name"] ?? ""),
+                          subtitle: Text(
+                            "${supplier["company"] ?? ""}\n${supplier["phone"] ?? ""}",
+                          ),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.edit,
+                                  color: Colors.orange,
+                                ),
+                                onPressed: () {
+                                  editSupplierForm(supplier);
+                                },
+                              ),
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.delete,
+                                  color: Colors.red,
+                                ),
+                                onPressed: () {
+                                  confirmDelete(supplier["id"].toString());
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+          ),
+        ],
       ),
       floatingActionButton: FloatingActionButton(
         backgroundColor: Colors.orange,

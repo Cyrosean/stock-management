@@ -9,5 +9,5 @@
 /// Tip: setting a static/reserved IP for your PC in your router settings
 /// means you may never have to touch this again.
 class ApiConfig {
-  static const String baseUrl = "http://10.168.255.61/wholesale_api";
+  static const String baseUrl = "http://192.168.1.196/wholesale_api";
 }

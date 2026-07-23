@@ -1,1 +1,0 @@
- C:\\Users\\cyros\\Desktop\\internship\ project\\wholesale\ inventory\ management\ system\\.dart_tool\\flutter_build\\03921f7bdc5a3a30c13fbdda9bf5c5d1\\native_assets.json: 

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:share_plus/share_plus.dart';
+import 'dart:convert';
 import 'clients_screen.dart';
 import 'suppliers_screen.dart';
 import 'purchases_screen.dart';
@@ -8,8 +10,44 @@ import 'sales_screen.dart';
 import 'profile_screen.dart';
 import 'login_screen.dart';
 
-class Dashboard extends StatelessWidget {
+class Dashboard extends StatefulWidget {
   const Dashboard({super.key});
+
+  @override
+  State<Dashboard> createState() => _DashboardState();
+}
+
+class _DashboardState extends State<Dashboard> {
+  final String baseUrl = "http://192.168.1.196/wholesale_api";
+
+  String businessName = "Wholesale Inventory";
+  String ownerName = "";
+  bool isLoadingProfile = true;
+
+  @override
+  void initState() {
+    super.initState();
+    fetchProfile();
+  }
+
+  Future<void> fetchProfile() async {
+    try {
+      final response = await http.get(Uri.parse("$baseUrl/get_profile.php"));
+
+      if (!mounted) return;
+
+      final data = jsonDecode(response.body);
+
+      setState(() {
+        businessName = data['business_name'] ?? "Wholesale Inventory";
+        ownerName = data['owner_name'] ?? "";
+        isLoadingProfile = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => isLoadingProfile = false);
+    }
+  }
 
   Widget buildCard(BuildContext context, IconData icon, String title) {
     return Card(
@@ -47,7 +85,9 @@ class Dashboard extends StatelessWidget {
             Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const ProfileScreen()),
-            );
+            ).then(
+              (_) => fetchProfile(),
+            ); // refresh drawer after editing profile
           } else {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text("$title Screen Coming Soon")),
@@ -102,8 +142,8 @@ class Dashboard extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(20, 60, 20, 24),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
-                children: const [
-                  CircleAvatar(
+                children: [
+                  const CircleAvatar(
                     radius: 35,
                     backgroundColor: Colors.white,
                     child: Icon(
@@ -112,11 +152,35 @@ class Dashboard extends StatelessWidget {
                       size: 40,
                     ),
                   ),
-                  SizedBox(height: 10),
-                  Text(
-                    "Wholesale Inventory",
-                    style: TextStyle(color: Colors.white, fontSize: 20),
-                  ),
+                  const SizedBox(height: 10),
+                  isLoadingProfile
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : Text(
+                          businessName,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                  if (!isLoadingProfile && ownerName.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      ownerName,
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -204,7 +268,7 @@ class Dashboard extends StatelessWidget {
                 },
                 icon: const Icon(Icons.logout, color: Color(0xFFFF8C00)),
                 label: const Text(
-                  'Sign',
+                  'Sign out',
                   style: TextStyle(color: Color(0xFFFF8C00)),
                 ),
               ),

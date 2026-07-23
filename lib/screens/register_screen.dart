@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'login_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -18,6 +19,74 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   bool hidePassword = true;
   bool hideConfirmPassword = true;
+  bool isLoading = false;
+
+  final String baseUrl = "http://192.168.1.196/wholesale_api";
+
+  Future<void> registerUser() async {
+    final fullName = fullNameController.text.trim();
+    final email = emailController.text.trim();
+    final phone = phoneController.text.trim();
+    final password = passwordController.text.trim();
+    final confirmPassword = confirmPasswordController.text.trim();
+
+    if (fullName.isEmpty || email.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please fill in all required fields")),
+      );
+      return;
+    }
+
+    if (password != confirmPassword) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Passwords do not match")));
+      return;
+    }
+
+    setState(() => isLoading = true);
+
+    try {
+      final response = await http.post(
+        Uri.parse("$baseUrl/register.php"),
+        body: {
+          "full_name": fullName,
+          "email": email,
+          "phone": phone,
+          "password": password,
+        },
+      );
+
+      if (!mounted) return;
+
+      final result = response.body.trim();
+
+      if (result == "success") {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Account created successfully")),
+        );
+
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const LoginScreen()),
+        );
+      } else {
+        final message = result.replaceFirst("error:", "").trim();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(message.isEmpty ? "Registration failed" : message),
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Connection error: $e")));
+    } finally {
+      if (mounted) setState(() => isLoading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -56,6 +125,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
             TextField(
               controller: emailController,
+              keyboardType: TextInputType.emailAddress,
               decoration: const InputDecoration(
                 labelText: "Email",
                 prefixIcon: Icon(Icons.email),
@@ -119,18 +189,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
             const SizedBox(height: 30),
 
-            ElevatedButton(
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text("Account created successfully")),
-                );
-
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (_) => const LoginScreen()),
-                );
-              },
-              child: const Text("REGISTER"),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: isLoading ? null : registerUser,
+                child: isLoading
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Text("REGISTER"),
+              ),
             ),
 
             const SizedBox(height: 15),
